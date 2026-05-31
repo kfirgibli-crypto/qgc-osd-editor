@@ -1,0 +1,24 @@
+# Multi-screen test fixture.
+# Verifies that the importer correctly distinguishes OSD1 / OSD2 / OSD3
+# without mixing them. The "ALTITUDE" element is placed at deliberately
+# distinct positions on each screen so any cross-contamination is obvious.
+
+OSD1_ENABLE,1
+OSD1_TXT_RES,2
+OSD1_ALTITUDE_EN,1
+OSD1_ALTITUDE_X,10
+OSD1_ALTITUDE_Y,1
+
+OSD2_ENABLE,1
+OSD2_TXT_RES,2
+OSD2_ALTITUDE_EN,1
+OSD2_ALTITUDE_X,20
+OSD2_ALTITUDE_Y,2
+
+OSD3_ENABLE,1
+OSD3_TXT_RES,1
+OSD3_ALTITUDE_EN,1
+OSD3_ALTITUDE_X,30
+OSD3_ALTITUDE_Y,3
+
+OSD4_ENABLE,0

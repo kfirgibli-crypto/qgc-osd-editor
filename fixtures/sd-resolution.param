@@ -1,0 +1,12 @@
+# Minimal SD-resolution test fixture.
+# Used to verify clampToResolution() handles positions originally laid out
+# for HD then switched to SD.
+
+OSD1_ENABLE,1
+OSD1_TXT_RES,0
+OSD1_ALTITUDE_EN,1
+OSD1_ALTITUDE_X,55
+OSD1_ALTITUDE_Y,20
+OSD1_BAT_VOLT_EN,1
+OSD1_BAT_VOLT_X,1
+OSD1_BAT_VOLT_Y,14

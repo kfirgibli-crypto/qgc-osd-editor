@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OSD Layout Editor — ArduPilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-0: #07090b;
+    --bg-1: #0d1115;
+    --bg-2: #141a20;
+    --bg-3: #1c242c;
+    --border: #232c36;
+    --border-strong: #2f3a46;
+    --text-0: #e6edf3;
+    --text-1: #b1bac4;
+    --text-2: #7d8590;
+    --text-3: #525c66;
+    --accent: #7ee7c7;       /* phosphor green-ish */
+    --accent-dim: #3a8d76;
+    --cyan: #58c8e6;
+    --amber: #e8b339;
+    --red: #e85d5d;
+    --grid-line: rgba(126, 231, 199, 0.05);
+    --grid-line-strong: rgba(126, 231, 199, 0.10);
+    --osd-glow: 0 0 6px rgba(126, 231, 199, 0.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-0);
+    color: var(--text-0);
+    font-family: 'Geist', -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+    height: 100%;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== App shell ===== */
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+  }
+
+  /* ===== Header / toolbar ===== */
+  header.bar {
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .brand-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border: 1px solid var(--accent-dim);
+    border-radius: 2px;
+  }
+  .brand-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-0);
+  }
+  .brand-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toolbar-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+  .toolbar-spacer { flex: 1; }
+
+  label.field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  select, input[type='number'], input[type='text'] {
+    background: var(--bg-2);
+    color: var(--text-0);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 100ms;
+  }
+  select:focus, input:focus { border-color: var(--accent-dim); }
+  input[type='number'] { width: 64px; text-align: right; }
+
+  button {
+    background: var(--bg-2);
+    color: var(--text-0);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 100ms;
+  }
+  button:hover { background: var(--bg-3); border-color: var(--border-strong); }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: var(--bg-0);
+    font-weight: 600;
+  }
+  button.primary:hover { background: var(--accent); border-color: var(--accent); }
+  button.ghost { background: transparent; }
+  button.danger { color: var(--red); border-color: var(--border); }
+  button.danger:hover { background: rgba(232, 93, 93, 0.12); border-color: var(--red); }
+
+  /* ===== Main layout ===== */
+  main.workspace {
+    display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    overflow: hidden;
+  }
+  aside.panel {
+    background: var(--bg-1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  aside.panel.right {
+    border-right: none;
+    border-left: 1px solid var(--border);
+  }
+  .panel-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .panel-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  .panel-body::-webkit-scrollbar { width: 8px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  .panel-body::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+  /* ===== Element palette ===== */
+  .palette-item {
+    display: grid;
+    grid-template-columns: 16px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+  .palette-item:hover { background: var(--bg-2); }
+  .palette-item.selected {
+    background: var(--bg-2);
+    border-left-color: var(--accent);
+  }
+  .palette-item.enabled .dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .palette-item .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-3);
+    transition: all 150ms;
+  }
+  .palette-item .name {
+    font-size: 12px;
+    color: var(--text-0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .palette-item.enabled .name { color: var(--text-0); }
+  .palette-item:not(.enabled) .name { color: var(--text-2); }
+  .palette-item .key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+
+  /* ===== Canvas ===== */
+  .canvas-wrap {
+    background:
+      radial-gradient(ellipse at center, var(--bg-1) 0%, var(--bg-0) 100%);
+    overflow: auto;
+    padding: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .canvas-frame {
+    position: relative;
+    background: #000;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    box-shadow:
+      0 0 0 1px rgba(126, 231, 199, 0.08),
+      0 24px 48px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .canvas-frame::before {
+    /* subtle scanlines */
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index: 2;
+  }
+  .canvas-grid {
+    position: relative;
+    background-color: #000;
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  }
+  .canvas-element {
+    position: absolute;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    text-shadow: var(--osd-glow);
+    cursor: grab;
+    user-select: none;
+    padding: 0 1px;
+    white-space: nowrap;
+    transition: outline 80ms;
+    outline: 1px solid transparent;
+    z-index: 3;
+  }
+  .canvas-element:hover {
+    outline-color: rgba(126, 231, 199, 0.4);
+  }
+  .canvas-element.selected {
+    outline: 1px dashed var(--accent);
+    background: rgba(126, 231, 199, 0.05);
+  }
+  .canvas-element.dragging {
+    cursor: grabbing;
+    z-index: 100;
+    opacity: 0.9;
+  }
+  .canvas-element.overlap {
+    color: var(--red);
+    text-shadow: 0 0 6px rgba(232, 93, 93, 0.6);
+  }
+
+  /* ===== Inspector ===== */
+  .inspector-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .inspector-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 6px;
+  }
+  .inspector-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .inspector-row > span:first-child {
+    font-size: 12px;
+    color: var(--text-1);
+    flex: 1;
+  }
+  .selected-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .selected-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    background: var(--bg-3);
+    border-radius: 9px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: all 150ms;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--text-2);
+    border-radius: 50%;
+    transition: all 150ms;
+  }
+  .toggle.on { background: var(--accent-dim); border-color: var(--accent-dim); }
+  .toggle.on::after { background: var(--accent); left: 20px; box-shadow: 0 0 6px var(--accent); }
+  .empty-state {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-3);
+    font-size: 12px;
+  }
+
+  /* ===== Status bar ===== */
+  footer.status {
+    background: var(--bg-1);
+    border-top: 1px solid var(--border);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-3);
+  }
+  .status-pill.ok::before { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
+  .status-pill.warn::before { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+  .status-pill.err::before { background: var(--red); box-shadow: 0 0 4px var(--red); }
+  .status-spacer { flex: 1; }
+
+  /* ===== Modal-ish ===== */
+  .file-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  textarea.param-box {
+    width: 100%;
+    height: 140px;
+    background: var(--bg-0);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 8px;
+    resize: vertical;
+    outline: none;
+  }
+  textarea.param-box:focus { border-color: var(--accent-dim); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  kbd {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1px 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-1);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Header / toolbar ===== -->
+  <header class="bar">
+    <div class="brand">
+      <div class="brand-mark">OSD</div>
+      <div>
+        <div class="brand-title">Layout Editor</div>
+        <div class="brand-sub">ArduPilot · MSP DisplayPort</div>
+      </div>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-group">
+      <label class="field">
+        Screen
+        <select id="screen-select"></select>
+      </label>
+      <label class="field">
+        Resolution
+        <select id="res-select">
+          <option value="0">SD 30×16</option>
+          <option value="1">HD 50×18</option>
+          <option value="2" selected>HD 60×22</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-group">
+      <button id="btn-import" class="ghost">Import .param</button>
+      <button id="btn-export" class="primary">Export .param</button>
+      <button id="btn-reset" class="ghost">Reset</button>
+    </div>
+
+    <div class="toolbar-spacer"></div>
+
+    <div class="toolbar-group">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3)">
+        Drag elements · Arrow keys to nudge
+      </span>
+    </div>
+  </header>
+
+  <!-- ===== Workspace ===== -->
+  <main class="workspace">
+
+    <!-- Left: palette -->
+    <aside class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Elements</span>
+        <span class="panel-counter" id="palette-counter">0 / 0</span>
+      </div>
+      <div class="panel-body" id="palette-list"></div>
+    </aside>
+
+    <!-- Center: canvas -->
+    <div class="canvas-wrap">
+      <div class="canvas-frame" id="canvas-frame">
+        <div class="canvas-grid" id="canvas-grid"></div>
+      </div>
+    </div>
+
+    <!-- Right: inspector -->
+    <aside class="panel right">
+      <div class="panel-header">
+        <span class="panel-title">Inspector</span>
+      </div>
+      <div class="panel-body" id="inspector-body"></div>
+    </aside>
+
+  </main>
+
+  <!-- ===== Status bar ===== -->
+  <footer class="status">
+    <span class="status-pill ok" id="status-screen">Screen 1</span>
+    <span class="status-pill ok" id="status-res">HD 60×22</span>
+    <span class="status-pill" id="status-overlaps">0 overlaps</span>
+    <div class="status-spacer"></div>
+    <span id="status-msg">Ready</span>
+  </footer>
+</div>
+
+<!-- The tested logic module inlined here -->
+<script>
+/* eslint-disable */
+//<![CDATA[
+const ELEMENTS=[{key:'ALTITUDE',label:'Altitude',width:6,sample:'142m'},{key:'BAT_VOLT',label:'Battery voltage',width:6,sample:'16.2V'},{key:'CURRENT',label:'Current',width:5,sample:'8.2A'},{key:'BATUSED',label:'mAh consumed',width:7,sample:'850mAh'},{key:'AVGCELLV',label:'Avg cell V',width:7,sample:'3.85V'},{key:'RSSI',label:'RSSI',width:5,sample:'98%'},{key:'SATS',label:'GPS sats',width:5,sample:'S14'},{key:'HDOP',label:'HDOP',width:6,sample:'H0.8'},{key:'FLTMODE',label:'Flight mode',width:7,sample:'LOITER'},{key:'GSPEED',label:'Ground speed',width:6,sample:'12m/s'},{key:'ASPEED',label:'Airspeed',width:6,sample:'14m/s'},{key:'VSPEED',label:'Climb rate',width:6,sample:'+1.2'},{key:'HORIZON',label:'Artificial horizon',width:13,sample:'-------\u2022-------'},{key:'HOME',label:'Home dist+dir',width:8,sample:'\u2191 142m'},{key:'HEADING',label:'Heading',width:7,sample:'147\u00b0'},{key:'THROTTLE',label:'Throttle %',width:5,sample:'64%'},{key:'COMPASS',label:'Compass rose',width:9,sample:'N \u00b7 E \u00b7'},{key:'FLTIME',label:'Flight time',width:7,sample:'04:23'},{key:'DIST',label:'Distance flown',width:6,sample:'2.4km'},{key:'MESSAGE',label:'Status messages',width:20,sample:'GPS: 3D Fix acquired'},{key:'CRSSHAIR',label:'Crosshair',width:3,sample:'+'},{key:'CLK',label:'Clock',width:6,sample:'14:32'},{key:'WIND',label:'Wind',width:6,sample:'6m/s'},{key:'STATS',label:'Flight stats',width:10,sample:'FT 04:23'},{key:'ARMING',label:'Arming status',width:6,sample:'ARMED'}];
+const RESOLUTIONS={0:{name:'SD 30\u00d716',cols:30,rows:16,hd:false},1:{name:'HD 50\u00d718',cols:50,rows:18,hd:true},2:{name:'HD 60\u00d722 DP',cols:60,rows:22,hd:true}};
+const DEFAULT_LAYOUT={ALTITUDE:{en:1,x:53,y:5},BAT_VOLT:{en:1,x:1,y:20},CURRENT:{en:1,x:8,y:20},BATUSED:{en:1,x:14,y:20},AVGCELLV:{en:0,x:1,y:19},RSSI:{en:1,x:53,y:0},SATS:{en:1,x:46,y:0},HDOP:{en:0,x:40,y:0},FLTMODE:{en:1,x:26,y:20},GSPEED:{en:1,x:1,y:5},ASPEED:{en:0,x:1,y:6},VSPEED:{en:1,x:53,y:6},HORIZON:{en:1,x:23,y:9},HOME:{en:1,x:1,y:0},HEADING:{en:1,x:26,y:1},THROTTLE:{en:1,x:1,y:1},COMPASS:{en:0,x:25,y:3},FLTIME:{en:1,x:52,y:20},DIST:{en:1,x:1,y:4},MESSAGE:{en:1,x:1,y:16},CRSSHAIR:{en:0,x:29,y:10},CLK:{en:0,x:53,y:21},WIND:{en:0,x:1,y:7},STATS:{en:0,x:20,y:8},ARMING:{en:0,x:26,y:11}};
+function makeDefaultState(){const s={activeScreen:1,screens:{}};for(let n=1;n<=4;n++){s.screens[n]={enabled:n===1?1:0,txtRes:2,chanMin:900,chanMax:2100,elements:{}};for(const e of ELEMENTS){const d=DEFAULT_LAYOUT[e.key]||{en:0,x:0,y:0};s.screens[n].elements[e.key]={en:n===1?d.en:0,x:d.x,y:d.y}}}return s}
+function parseParamFile(text){const r={screens:{}};const ks=new Set(ELEMENTS.map(e=>e.key));for(const raw of text.split(/\r?\n/)){const line=raw.split('#')[0].trim();if(!line)continue;const p=line.split(/[,\s]+/).filter(Boolean);if(p.length<2)continue;const v=Number(p[1]);if(!Number.isFinite(v))continue;const m=p[0].match(/^OSD([1-4])_(.+)$/);if(!m)continue;const n=Number(m[1]),rest=m[2];if(!r.screens[n])r.screens[n]={elements:{}};const s=r.screens[n];if(rest==='ENABLE'){s.enabled=v|0;continue}if(rest==='TXT_RES'){s.txtRes=v|0;continue}if(rest==='CHAN_MIN'){s.chanMin=v|0;continue}if(rest==='CHAN_MAX'){s.chanMax=v|0;continue}const em=rest.match(/^(.+)_(EN|X|Y)$/);if(!em)continue;const ek=em[1],f=em[2];if(!ks.has(ek))continue;if(!s.elements[ek])s.elements[ek]={};if(f==='EN')s.elements[ek].en=v|0;if(f==='X')s.elements[ek].x=v|0;if(f==='Y')s.elements[ek].y=v|0}return r}
+function mergeIntoState(base,partial){const n=JSON.parse(JSON.stringify(base));if(!partial.screens)return n;for(const[k,ps]of Object.entries(partial.screens)){const i=Number(k);if(!n.screens[i])continue;const t=n.screens[i];if(ps.enabled!==undefined)t.enabled=ps.enabled;if(ps.txtRes!==undefined)t.txtRes=ps.txtRes;if(ps.chanMin!==undefined)t.chanMin=ps.chanMin;if(ps.chanMax!==undefined)t.chanMax=ps.chanMax;if(ps.elements)for(const[ek,v]of Object.entries(ps.elements)){if(!t.elements[ek])t.elements[ek]={en:0,x:0,y:0};if(v.en!==undefined)t.elements[ek].en=v.en;if(v.x!==undefined)t.elements[ek].x=v.x;if(v.y!==undefined)t.elements[ek].y=v.y}}return n}
+function serializeParamFile(state,opts={}){const{includeComments=true,screens=[1,2,3,4]}=opts;const o=[];if(includeComments){o.push('# ArduPilot OSD layout \u2014 exported by osd-editor');o.push('# Generated: '+new Date().toISOString());o.push('')}for(const n of screens){const s=state.screens[n];if(!s)continue;if(includeComments)o.push(`# --- Screen ${n} ---`);o.push(`OSD${n}_ENABLE,${s.enabled}`);o.push(`OSD${n}_TXT_RES,${s.txtRes}`);o.push(`OSD${n}_CHAN_MIN,${s.chanMin}`);o.push(`OSD${n}_CHAN_MAX,${s.chanMax}`);for(const el of ELEMENTS){const e=s.elements[el.key];if(!e)continue;o.push(`OSD${n}_${el.key}_EN,${e.en}`);o.push(`OSD${n}_${el.key}_X,${e.x}`);o.push(`OSD${n}_${el.key}_Y,${e.y}`)}if(includeComments)o.push('')}return o.join('\n')}
+function clampToResolution(state,si){const s=state.screens[si];const r=RESOLUTIONS[s.txtRes]||RESOLUTIONS[2];for(const el of ELEMENTS){const e=s.elements[el.key];if(!e)continue;if(e.x<0)e.x=0;if(e.y<0)e.y=0;if(e.x>r.cols-1)e.x=r.cols-1;if(e.y>r.rows-1)e.y=r.rows-1}return state}
+function detectOverlaps(state,si){const s=state.screens[si];const a=[];for(const el of ELEMENTS){const e=s.elements[el.key];if(!e||!e.en)continue;a.push({key:el.key,x:e.x,y:e.y,w:el.width})}const o=[];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){const x=a[i],y=a[j];if(x.y!==y.y)continue;if(x.x<(y.x+y.w)&&y.x<(x.x+x.w))o.push({a:x.key,b:y.key,y:x.y})}return o}
+//]]>
+</script>
+
+<!-- Editor application -->
+<script>
+//<![CDATA[
+(function () {
+  // ---------- State ----------
+  const LS_KEY = 'osd-editor-state-v1';
+  let state = makeDefaultState();
+  let selectedKey = null;
+  let dragState = null;
+
+  // Try to restore from localStorage
+  try {
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored) state = JSON.parse(stored);
+  } catch (e) { /* ignore */ }
+
+  function persist() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  // ---------- DOM refs ----------
+  const $screenSelect = document.getElementById('screen-select');
+  const $resSelect = document.getElementById('res-select');
+  const $paletteList = document.getElementById('palette-list');
+  const $paletteCounter = document.getElementById('palette-counter');
+  const $canvasFrame = document.getElementById('canvas-frame');
+  const $canvasGrid = document.getElementById('canvas-grid');
+  const $inspectorBody = document.getElementById('inspector-body');
+  const $statusScreen = document.getElementById('status-screen');
+  const $statusRes = document.getElementById('status-res');
+  const $statusOverlaps = document.getElementById('status-overlaps');
+  const $statusMsg = document.getElementById('status-msg');
+
+  // ---------- Init screen selector ----------
+  for (let n = 1; n <= 4; n++) {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = `Screen ${n}`;
+    $screenSelect.appendChild(opt);
+  }
+
+  // ---------- Status helpers ----------
+  let msgTimer = null;
+  function setMsg(text, kind = 'info') {
+    $statusMsg.textContent = text;
+    if (msgTimer) clearTimeout(msgTimer);
+    msgTimer = setTimeout(() => { $statusMsg.textContent = 'Ready'; }, 4000);
+  }
+
+  // ---------- Cell sizing ----------
+  function cellSize() {
+    const res = RESOLUTIONS[state.screens[state.activeScreen].txtRes];
+    // Target an attractive canvas size. Aspect ~16:9 for HD, ~4:3 for SD.
+    const targetW = res.hd ? 960 : 720;
+    const cw = Math.floor(targetW / res.cols);
+    // Cell height a bit taller than wide for text-cell feel
+    const ch = Math.round(cw * 1.6);
+    return { cw, ch };
+  }
+
+  // ---------- Render: canvas ----------
+  function renderCanvas() {
+    const screen = state.screens[state.activeScreen];
+    const res = RESOLUTIONS[screen.txtRes];
+    const { cw, ch } = cellSize();
+    const W = cw * res.cols;
+    const H = ch * res.rows;
+
+    $canvasGrid.style.width = W + 'px';
+    $canvasGrid.style.height = H + 'px';
+    $canvasGrid.style.backgroundSize = `${cw}px ${ch}px`;
+    $canvasGrid.innerHTML = '';
+
+    const overlapPairs = detectOverlaps(state, state.activeScreen);
+    const overlapSet = new Set();
+    for (const o of overlapPairs) { overlapSet.add(o.a); overlapSet.add(o.b); }
+
+    for (const el of ELEMENTS) {
+      const e = screen.elements[el.key];
+      if (!e || !e.en) continue;
+
+      const div = document.createElement('div');
+      div.className = 'canvas-element';
+      if (selectedKey === el.key) div.classList.add('selected');
+      if (overlapSet.has(el.key)) div.classList.add('overlap');
+
+      div.dataset.key = el.key;
+      div.textContent = el.sample;
+      div.style.left = (e.x * cw) + 'px';
+      div.style.top = (e.y * ch) + 'px';
+      div.style.fontSize = Math.max(9, Math.floor(ch * 0.6)) + 'px';
+      div.style.lineHeight = ch + 'px';
+      div.style.height = ch + 'px';
+      div.title = `${el.label} · OSD${state.activeScreen}_${el.key}_*  (X=${e.x}, Y=${e.y})`;
+
+      div.addEventListener('mousedown', (ev) => onElementMouseDown(ev, el.key));
+      $canvasGrid.appendChild(div);
+    }
+
+    // Status pills
+    $statusScreen.textContent = `Screen ${state.activeScreen}` + (screen.enabled ? '' : ' (disabled)');
+    $statusScreen.className = screen.enabled ? 'status-pill ok' : 'status-pill warn';
+    $statusRes.textContent = res.name;
+    $statusOverlaps.textContent = `${overlapPairs.length} overlap${overlapPairs.length === 1 ? '' : 's'}`;
+    $statusOverlaps.className = 'status-pill ' + (overlapPairs.length > 0 ? 'warn' : 'ok');
+  }
+
+  // ---------- Render: palette ----------
+  function renderPalette() {
+    const screen = state.screens[state.activeScreen];
+    $paletteList.innerHTML = '';
+    let enabledCount = 0;
+    for (const el of ELEMENTS) {
+      const e = screen.elements[el.key];
+      const enabled = !!(e && e.en);
+      if (enabled) enabledCount++;
+
+      const row = document.createElement('div');
+      row.className = 'palette-item' + (enabled ? ' enabled' : '') + (selectedKey === el.key ? ' selected' : '');
+      row.dataset.key = el.key;
+      row.innerHTML = `
+        <span class="dot"></span>
+        <span class="name" title="${el.label}">${el.label}</span>
+        <span class="key">${el.key}</span>
+      `;
+      row.addEventListener('click', () => {
+        // Toggle enable on click; select to inspect on second click
+        if (selectedKey === el.key) {
+          screen.elements[el.key].en = enabled ? 0 : 1;
+          persist();
+          renderAll();
+        } else {
+          selectedKey = el.key;
+          renderAll();
+        }
+      });
+      $paletteList.appendChild(row);
+    }
+    $paletteCounter.textContent = `${enabledCount} / ${ELEMENTS.length}`;
+  }
+
+  // ---------- Render: inspector ----------
+  function renderInspector() {
+    const screen = state.screens[state.activeScreen];
+    const e = selectedKey ? screen.elements[selectedKey] : null;
+    const el = selectedKey ? ELEMENTS.find((x) => x.key === selectedKey) : null;
+    const res = RESOLUTIONS[screen.txtRes];
+
+    $inspectorBody.innerHTML = '';
+
+    // --- Screen meta section ---
+    const meta = document.createElement('div');
+    meta.className = 'inspector-section';
+    meta.innerHTML = `
+      <div class="inspector-label">Screen ${state.activeScreen}</div>
+      <div class="inspector-row">
+        <span>Enabled</span>
+        <div class="toggle ${screen.enabled ? 'on' : ''}" id="meta-enabled"></div>
+      </div>
+      <div class="inspector-row">
+        <span>RC PWM min</span>
+        <input type="number" id="meta-min" value="${screen.chanMin}" min="900" max="2100"/>
+      </div>
+      <div class="inspector-row">
+        <span>RC PWM max</span>
+        <input type="number" id="meta-max" value="${screen.chanMax}" min="900" max="2100"/>
+      </div>
+    `;
+    $inspectorBody.appendChild(meta);
+
+    // --- Selected element section ---
+    if (e && el) {
+      const sec = document.createElement('div');
+      sec.className = 'inspector-section';
+      sec.innerHTML = `
+        <div class="selected-name">${el.label}</div>
+        <div class="selected-key">OSD${state.activeScreen}_${el.key}_*</div>
+        <div style="height:10px"></div>
+        <div class="inspector-row">
+          <span>Enabled</span>
+          <div class="toggle ${e.en ? 'on' : ''}" id="el-enabled"></div>
+        </div>
+        <div class="inspector-row">
+          <span>X · column</span>
+          <input type="number" id="el-x" value="${e.x}" min="0" max="${res.cols - 1}"/>
+        </div>
+        <div class="inspector-row">
+          <span>Y · row</span>
+          <input type="number" id="el-y" value="${e.y}" min="0" max="${res.rows - 1}"/>
+        </div>
+        <div class="hint">Range: X 0..${res.cols - 1}, Y 0..${res.rows - 1}. Use <kbd>←↑↓→</kbd> on the canvas.</div>
+      `;
+      $inspectorBody.appendChild(sec);
+
+      // Wire up
+      document.getElementById('el-enabled').onclick = () => {
+        e.en = e.en ? 0 : 1;
+        persist(); renderAll();
+      };
+      document.getElementById('el-x').oninput = (ev) => {
+        const v = clamp(parseInt(ev.target.value, 10) || 0, 0, res.cols - 1);
+        e.x = v; persist(); renderCanvas();
+      };
+      document.getElementById('el-y').oninput = (ev) => {
+        const v = clamp(parseInt(ev.target.value, 10) || 0, 0, res.rows - 1);
+        e.y = v; persist(); renderCanvas();
+      };
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'Click an element in the palette or canvas to inspect it.';
+      $inspectorBody.appendChild(empty);
+    }
+
+    // --- Param file IO ---
+    const io = document.createElement('div');
+    io.className = 'inspector-section';
+    io.innerHTML = `
+      <div class="inspector-label">Parameter file</div>
+      <textarea class="param-box" id="param-text" placeholder="Paste .param contents here to import, or click Export to populate."></textarea>
+      <div class="file-row">
+        <button id="btn-paste-import">Import pasted</button>
+        <button id="btn-copy-export" class="primary">Copy export</button>
+      </div>
+      <div class="hint">Mission Planner format — commit lines to a .param file or load directly via QGC's parameter editor.</div>
+    `;
+    $inspectorBody.appendChild(io);
+
+    document.getElementById('meta-enabled').onclick = () => {
+      screen.enabled = screen.enabled ? 0 : 1; persist(); renderAll();
+    };
+    document.getElementById('meta-min').oninput = (ev) => {
+      screen.chanMin = clamp(parseInt(ev.target.value, 10) || 900, 900, 2100); persist();
+    };
+    document.getElementById('meta-max').oninput = (ev) => {
+      screen.chanMax = clamp(parseInt(ev.target.value, 10) || 2100, 900, 2100); persist();
+    };
+    document.getElementById('btn-paste-import').onclick = () => {
+      const text = document.getElementById('param-text').value;
+      if (!text.trim()) { setMsg('Paste box is empty'); return; }
+      try {
+        const partial = parseParamFile(text);
+        state = mergeIntoState(state, partial);
+        clampToResolution(state, state.activeScreen);
+        persist(); renderAll();
+        setMsg('Imported ' + countAssignments(text) + ' assignments');
+      } catch (err) {
+        setMsg('Parse error: ' + err.message);
+      }
+    };
+    document.getElementById('btn-copy-export').onclick = () => {
+      const text = serializeParamFile(state);
+      document.getElementById('param-text').value = text;
+      try {
+        navigator.clipboard.writeText(text);
+        setMsg('Copied to clipboard');
+      } catch (e) {
+        setMsg('Export ready in box');
+      }
+    };
+  }
+
+  function countAssignments(text) {
+    return text.split(/\r?\n/).filter((l) => l.includes(',') || /\s\d/.test(l)).filter((l) => !l.trim().startsWith('#')).length;
+  }
+
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  // ---------- Render all ----------
+  function renderAll() {
+    $screenSelect.value = state.activeScreen;
+    $resSelect.value = state.screens[state.activeScreen].txtRes;
+    renderPalette();
+    renderCanvas();
+    renderInspector();
+  }
+
+  // ---------- Drag handling ----------
+  function onElementMouseDown(ev, key) {
+    ev.preventDefault();
+    selectedKey = key;
+    const { cw, ch } = cellSize();
+    const screen = state.screens[state.activeScreen];
+    const e = screen.elements[key];
+    const startX = ev.clientX, startY = ev.clientY;
+    const origX = e.x, origY = e.y;
+    dragState = { key, startX, startY, origX, origY, cw, ch };
+    renderAll();
+
+    function move(mv) {
+      if (!dragState) return;
+      const dx = Math.round((mv.clientX - dragState.startX) / dragState.cw);
+      const dy = Math.round((mv.clientY - dragState.startY) / dragState.ch);
+      const res = RESOLUTIONS[screen.txtRes];
+      const nx = clamp(dragState.origX + dx, 0, res.cols - 1);
+      const ny = clamp(dragState.origY + dy, 0, res.rows - 1);
+      if (nx !== e.x || ny !== e.y) {
+        e.x = nx; e.y = ny;
+        renderCanvas();
+      }
+    }
+    function up() {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      if (dragState) {
+        dragState = null;
+        persist();
+        renderInspector();
+      }
+    }
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+
+  // ---------- Keyboard nudging ----------
+  window.addEventListener('keydown', (ev) => {
+    if (!selectedKey) return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+    const screen = state.screens[state.activeScreen];
+    const e = screen.elements[selectedKey];
+    if (!e) return;
+    const res = RESOLUTIONS[screen.txtRes];
+    let handled = true;
+    const step = ev.shiftKey ? 5 : 1;
+    if (ev.key === 'ArrowLeft')  e.x = clamp(e.x - step, 0, res.cols - 1);
+    else if (ev.key === 'ArrowRight') e.x = clamp(e.x + step, 0, res.cols - 1);
+    else if (ev.key === 'ArrowUp')    e.y = clamp(e.y - step, 0, res.rows - 1);
+    else if (ev.key === 'ArrowDown')  e.y = clamp(e.y + step, 0, res.rows - 1);
+    else if (ev.key === ' ') { e.en = e.en ? 0 : 1; }
+    else if (ev.key === 'Delete' || ev.key === 'Backspace') { e.en = 0; }
+    else handled = false;
+    if (handled) { ev.preventDefault(); persist(); renderAll(); }
+  });
+
+  // ---------- Toolbar wiring ----------
+  $screenSelect.onchange = (ev) => {
+    state.activeScreen = Number(ev.target.value);
+    persist(); renderAll();
+  };
+  $resSelect.onchange = (ev) => {
+    state.screens[state.activeScreen].txtRes = Number(ev.target.value);
+    clampToResolution(state, state.activeScreen);
+    persist(); renderAll();
+    setMsg('Resolution changed to ' + RESOLUTIONS[state.screens[state.activeScreen].txtRes].name);
+  };
+  document.getElementById('btn-import').onclick = () => {
+    // Trigger hidden file input
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.param,.txt,text/plain';
+    inp.onchange = () => {
+      const file = inp.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const partial = parseParamFile(reader.result);
+          state = mergeIntoState(state, partial);
+          clampToResolution(state, state.activeScreen);
+          persist(); renderAll();
+          setMsg(`Imported ${file.name}`);
+        } catch (err) {
+          setMsg('Import error: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
+  };
+  document.getElementById('btn-export').onclick = () => {
+    const text = serializeParamFile(state);
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'osd-layout.param';
+    a.click();
+    URL.revokeObjectURL(url);
+    setMsg('Exported osd-layout.param');
+  };
+  document.getElementById('btn-reset').onclick = () => {
+    if (!confirm('Reset all screens to defaults? This cannot be undone.')) return;
+    state = makeDefaultState();
+    selectedKey = null;
+    persist(); renderAll();
+    setMsg('Reset to defaults');
+  };
+
+  // ---------- Click outside to deselect ----------
+  $canvasGrid.addEventListener('mousedown', (ev) => {
+    if (ev.target === $canvasGrid) {
+      selectedKey = null;
+      renderAll();
+    }
+  });
+
+  // ---------- Initial render ----------
+  renderAll();
+})();
+//]]>
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Builds
+build/
+dist/
+*.o
+*.obj
+moc_*.cpp
+qrc_*.cpp
+
+# Logs
+*.log
+
+# Local notes that shouldn't be shared
+notes.local.md
+TODO.local.md
+
+# Claude local settings (machine-specific paths, not for sharing)
+.claude/
+
+# Distributable build artifacts
+*.zip
