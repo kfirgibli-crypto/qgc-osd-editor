@@ -1,8 +1,31 @@
 # QGC OSD Layout Editor
 
+![OSD Layout Editor for QGroundControl](docs/banner.png)
+
 A QGroundControl SetupView component that lets users edit ArduPilot
 OSD layouts (rendered on DJI O3 / Walksnail / HDZero goggles) directly
 inside QGC — replacing the need to switch to Mission Planner.
+
+Instead of hand-editing 75+ cryptic parameters like `OSD1_BAT_VOLT_X = 53`,
+you **drag elements onto a grid** and the editor writes the matching
+`OSD*` parameters to the flight controller live. It flags overlapping
+elements, supports multiple screens/resolutions, and imports/exports
+`.param` files.
+
+Built with **C++ / Qt Quick (QML)** as a native QGroundControl plugin,
+talking to ArduPilot's `OSD*` parameter family over MAVLink — tested live
+against a real Cube flight controller.
+
+## Screenshot
+
+<!-- Replace with your own screenshot: in QGC open Vehicle Config -> OSD,
+     click "Demo preview", then Win+PrtScn and save the file as
+     docs/screenshot.png (it will show automatically once committed). -->
+<!-- ![Editor screenshot](docs/screenshot.png) -->
+
+_Open the **OSD** page under Vehicle Configuration, drag elements on the
+grid, and toggle **Demo preview** to see the full layout with sample
+telemetry._
 
 ## Status
 
