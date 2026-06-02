@@ -54,6 +54,12 @@ SetupPage {
     // The element key currently selected for inspection. "" = none.
     property string selectedKey: ""
 
+    // Demo preview: when true, the canvas shows ALL positioned elements with
+    // their sample values + full phosphor styling, regardless of enable state.
+    // Purely cosmetic (for screenshots / showcasing the layout) - it never
+    // writes any Fact. Normal editing/visibility is unchanged when false.
+    property bool demoMode: false
+
     // Cached set of keys participating in any overlap pair, recomputed
     // whenever the controller signals a change or the user finishes a drag.
     // Stored as an Array of strings; QML rebinds on reassignment.
@@ -181,6 +187,15 @@ SetupPage {
                     ToolTip.text: qsTr("Clamp every element's X/Y to fit the current resolution")
                 }
 
+                QGCButton {
+                    text: osdPage.demoMode ? qsTr("Demo: ON") : qsTr("Demo preview")
+                    checkable: true
+                    checked: osdPage.demoMode
+                    onClicked: osdPage.demoMode = checked
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Preview all elements with sample values and FPV styling (cosmetic only - writes nothing)")
+                }
+
                 Item { Layout.fillWidth: true }
 
                 QGCButton {
@@ -294,8 +309,9 @@ SetupPage {
                         onPaint: {
                             var ctx = getContext("2d")
                             ctx.clearRect(0, 0, width, height)
-                            // Phosphor-green at 5% alpha to match prototype's --grid-line.
-                            ctx.strokeStyle = "rgba(126, 231, 199, 0.05)"
+                            // Phosphor-green grid, slightly brighter for a crisper
+                            // "FPV screen" feel while staying subtle.
+                            ctx.strokeStyle = "rgba(126, 231, 199, 0.09)"
                             ctx.lineWidth = 1
                             ctx.beginPath()
                             var cw = canvas.cellW
@@ -328,10 +344,18 @@ SetupPage {
                     Repeater {
                         model: controller.elementKeys
                         delegate: Loader {
-                            // Only render elements whose Fact exists AND is enabled.
+                            // Normally: render elements whose Fact exists AND is
+                            // enabled. In demo mode: render every element that has
+                            // X/Y Facts, so the layout shows fully styled for a
+                            // screenshot (still writes nothing).
                             active: {
                                 var f = controller.elEnabledFact(modelData)
-                                return f !== null && f.rawValue === 1
+                                if (f !== null && f.rawValue === 1) return true
+                                if (osdPage.demoMode) {
+                                    return controller.elXFact(modelData) !== null
+                                           && controller.elYFact(modelData) !== null
+                                }
+                                return false
                             }
                             sourceComponent: canvasElementComponent
                             property string elKey: modelData
@@ -362,13 +386,22 @@ SetupPage {
                                                       : (selected ? "#7ee7c7" : "transparent")
                             border.width: 1
 
-                            QGCLabel {
+                            // Phosphor-glow OSD text. Uses built-in Text.Outline
+                            // styling (no extra imports - keeps the file load-safe)
+                            // to give a soft halo like a real FPV character OSD.
+                            Text {
                                 anchors.fill: parent
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment:   Text.AlignVCenter
                                 text: parent.info.sample || parent.elKey
                                 font.family: ScreenTools.fixedFontFamily
-                                color: parent.overlapping ? "#e85d5d" : "#7ee7c7"
+                                font.bold: true
+                                font.pixelSize: Math.max(10, canvas.cellH * 0.9)
+                                color: parent.overlapping ? "#ff6b6b" : "#8effd6"
+                                style: Text.Outline
+                                styleColor: parent.overlapping
+                                            ? Qt.rgba(1.0, 0.20, 0.20, 0.55)
+                                            : Qt.rgba(0.20, 1.0, 0.70, 0.45)
                                 elide: Text.ElideRight
                             }
 

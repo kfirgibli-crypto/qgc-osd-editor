@@ -1,5 +1,23 @@
 # RESUME — pick-up notes for the next session
 
+## 2026-06-02 session — blank page fixed, published to GitHub
+
+**Source is now PUBLIC on GitHub:** https://github.com/kfirgibli-crypto/qgc-osd-editor
+- Repo = the `qgc-osd-editor` project dir (prototype + qgc/ source + docs + tests). Init'd git, `main` branch, commit `af4ef3d`, pushed via `gh`. `.claude/` and `*.zip` git-ignored.
+- Git identity: kfirgibli-crypto / kfirgibli-crypto@users.noreply.github.com. `gh` CLI installed + authed.
+- Update flow: `git add -A && git commit -m "..." && git push`.
+- Did NOT publish the QGC fork (F:\APPS\qgroundcontrol, 530MB, mavlink upstream) — our 12-file change lives there uncommitted. No GitHub Release/zip attached yet (zip was deleted).
+
+**BLANK PAGE BUG — SOLVED.** Cause was invalid QML module imports (`QGroundControl.FactSystem` + `QGroundControl.Palette`, same class as the earlier ScreenTools bug). A non-existent module URI makes Qt silently fail to load the whole .qml → blank page, no capturable error on the Windows GUI build. Fix: removed both lines; valid imports are `QtCore,QtQuick,QtQuick.Controls,QtQuick.Layouts,QtQuick.Dialogs` + `QGroundControl,QGroundControl.FactControls,QGroundControl.Controls`. Found via on-screen bisect (a minimal diag page was ALSO blank until imports were valid) + checking against the real `qt_add_qml_module` URI list. Editor now fully renders (palette/canvas/inspector/status bar) against a real Cube. Backup of pre-fix QML: `src/AutoPilotPlugins/APM/APMOSDComponent.qml.fullbak` (deletable).
+
+**Cube troubleshooting (NOT app bugs):** Flicker + sensor-cal failures were all the Cube, not our build:
+- Whole-window flicker = an unhealthy vehicle spamming MAVLink errors → constant UI redraw. Gone when a healthy/idle vehicle is connected. Not a GPU issue (QSG_RHI_BACKEND/QT_QUICK_BACKEND=software did not fix it; a healthy board did).
+- "Sensors greyed out / can't calibrate" on a fresh board = ArduPilot locks Sensors until the **Frame** is set (FRAME_CLASS). Set Frame first, then accel/compass calibrate.
+- `skysurfer 7.params` is a FULL clone of one specific board incl. its per-board sensor calibration + device IDs (INS_ACC*OFFS, COMPASS_OFS*, *_DEV_ID). Loading it onto a DIFFERENT board makes those sensors read as unhealthy → errors → flicker. Cloning is fine for OSD/tuning/config, but accel + compass MUST be re-run per physical board. (File is ArduPlane / fixed-wing; OSD_TYPE 3 = MSP, SERIAL1_PROTOCOL 23 = DisplayPort to goggles. ARMING_CHECK 0 = all checks off.)
+- The "APMAutoPilotPlugin.cc is corrupted" alarm earlier this session was a MISREAD of a garbled UTF-16 dump — RETRACTED. That file is clean (281 lines); build is safe.
+
+---
+
 **Snapshot date:** 2026-05-30 (session ran 2026-05-27 through 2026-05-30)
 **Cube state at end of session:** Cube Orange running ArduCopter V4.6.3 (flashed during this session, BARO1 board-validation error present but not blocking QGC integration)
 **QGC build state:** `F:\APPS\qgroundcontrol\build\Release\QGroundControl.exe` rebuilt successfully; loads cleanly; OSD entry appears in sidebar; **full editor page now RENDERS CORRECTLY (blank-page bug SOLVED 2026-05-30)** — palette, canvas+grid, inspector, status bar all visible against a real Cube.
