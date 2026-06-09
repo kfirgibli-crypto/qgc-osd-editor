@@ -18,14 +18,11 @@ against a real Cube flight controller.
 
 ## Screenshot
 
-<!-- Replace with your own screenshot: in QGC open Vehicle Config -> OSD,
-     click "Demo preview", then Win+PrtScn and save the file as
-     docs/screenshot.png (it will show automatically once committed). -->
-<!-- ![Editor screenshot](docs/screenshot.png) -->
+![Editor screenshot](docs/screenshot.png)
 
-_Open the **OSD** page under Vehicle Configuration, drag elements on the
-grid, and toggle **Demo preview** to see the full layout with sample
-telemetry._
+_The **OSD** page under Vehicle Configuration: drag elements on the grid to
+position them, and toggle **Demo preview** to see the full layout with
+sample telemetry (shown above, running live against a Cube Orange+)._
 
 ## Status
 
